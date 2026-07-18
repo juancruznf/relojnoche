@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Reloj Nocturno</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    height:100%; width:100%;
+    background:#000;
+    color:#fff;
+    font-family: -apple-system, 'Helvetica Neue', Arial, sans-serif;
+    overflow:hidden;
+    user-select:none;
+  }
+  .wrap {
+    height:100%; width:100%;
+    display:flex; flex-direction:column;
+    align-items:center; justify-content:center;
+    gap: 2vh;
+  }
+  .clock {
+    font-size: 16vw;
+    font-weight:200;
+    letter-spacing: 0.02em;
+    line-height:1;
+    font-variant-numeric: tabular-nums;
+  }
+  .date {
+    font-size: 2.6vw;
+    color:#888;
+    text-transform:capitalize;
+    letter-spacing:0.05em;
+  }
+  .weather {
+    display:flex;
+    align-items:center;
+    gap:1.2vw;
+    font-size:2.2vw;
+    color:#bbb;
+    margin-top:0.5vh;
+  }
+  .weather .temp { font-size:3vw; color:#fff; font-weight:300; }
+  .weather .icon { font-size: 3.4vw; }
+
+  .radio-bar {
+    position:fixed;
+    bottom:0; left:0; right:0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:1.5vw;
+    padding: 2vh 2vw 3vh;
+    flex-wrap:wrap;
+    opacity:0.85;
+  }
+  .station-btn {
+    background:#111;
+    border:1px solid #333;
+    color:#ccc;
+    font-size:1.5vw;
+    padding:1.2vh 1.6vw;
+    border-radius:999px;
+    cursor:pointer;
+    transition: all 0.2s;
+    white-space:nowrap;
+  }
+  .station-btn.active {
+    background:#fff;
+    color:#000;
+    border-color:#fff;
+  }
+  .station-btn:active { transform: scale(0.95); }
+
+  .now-playing {
+    position:fixed;
+    top:3vh; left:0; right:0;
+    text-align:center;
+    font-size:1.6vw;
+    color:#666;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:1vw;
+  }
+  .dot {
+    width:0.7vw; height:0.7vw;
+    border-radius:50%;
+    background:#e74c3c;
+    display:none;
+  }
+  .dot.live { display:inline-block; animation: pulse 1.5s infinite; }
+  @keyframes pulse {
+    0%,100% { opacity:1; }
+    50% { opacity:0.3; }
+  }
+  .vol-row {
+    display:flex; align-items:center; gap:1vw; margin-top:0.5vh;
+  }
+  input[type=range] {
+    width: 20vw;
+    accent-color:#fff;
+  }
+
+  .dim-toggle {
+    position:fixed;
+    top:3vh; right:3vw;
+    font-size:1.6vw;
+    color:#555;
+    cursor:pointer;
+    padding:1vh 1.2vw;
+  }
+
+  body.dim .clock { color:#8a2a2a; }
+  body.dim .date, body.dim .weather { color:#5a2020; }
+  body.dim .weather .temp { color:#8a2a2a; }
+</style>
+</head>
+<body>
+  <div class="now-playing" id="nowPlaying"><span class="dot" id="liveDot"></span><span id="npText"></span></div>
+  <div class="dim-toggle" id="dimToggle">🌙 modo rojo</div>
+
+  <div class="wrap">
+    <div class="clock" id="clock">--:--</div>
+    <div class="date" id="date">--</div>
+    <div class="weather" id="weather">
+      <span class="icon">⏳</span>
+      <span class="temp">--°</span>
+      <span id="weatherDesc">Cargando clima...</span>
+    </div>
+    <div class="vol-row">
+      <span style="color:#666;font-size:1.4vw;">🔊</span>
+      <input type="range" id="vol" min="0" max="1" step="0.01" value="0.6">
+    </div>
+  </div>
+
+  <div class="radio-bar" id="radioBar"></div>
+
+  <audio id="player" preload="none"></audio>
+
+<script>
+  // ---------- RELOJ ----------
+  function pad(n){ return n.toString().padStart(2,'0'); }
+  function updateClock(){
+    const now = new Date();
+    document.getElementById('clock').textContent = pad(now.getHours())+':'+pad(now.getMinutes());
+    const opts = { weekday:'long', day:'numeric', month:'long' };
+    document.getElementById('date').textContent = now.toLocaleDateString('es-AR', opts);
+  }
+  updateClock();
+  setInterval(updateClock, 1000);
+
+  // ---------- CLIMA (Buenos Aires, Open-Meteo, sin API key) ----------
+  const weatherCodes = {
+    0:['☀️','Despejado'], 1:['🌤️','Mayormente despejado'], 2:['⛅','Parcialmente nublado'],
+    3:['☁️','Nublado'], 45:['🌫️','Neblina'], 48:['🌫️','Neblina helada'],
+    51:['🌦️','Llovizna'], 53:['🌦️','Llovizna'], 55:['🌧️','Llovizna intensa'],
+    61:['🌧️','Lluvia débil'], 63:['🌧️','Lluvia'], 65:['🌧️','Lluvia fuerte'],
+    71:['🌨️','Nieve débil'], 73:['🌨️','Nieve'], 75:['❄️','Nieve fuerte'],
+    80:['🌦️','Chubascos'], 81:['🌧️','Chubascos'], 82:['⛈️','Chubascos fuertes'],
+    95:['⛈️','Tormenta'], 96:['⛈️','Tormenta con granizo'], 99:['⛈️','Tormenta fuerte']
+  };
+
+  async function fetchWeather(){
+    try {
+      const lat = -34.6037, lon = -58.3816; // Buenos Aires
+      const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code&timezone=America%2FSao_Paulo`;
+      const res = await fetch(url);
+      const data = await res.json();
+      const temp = Math.round(data.current.temperature_2m);
+      const code = data.current.weather_code;
+      const info = weatherCodes[code] || ['🌡️','--'];
+      document.querySelector('.weather .icon').textContent = info[0];
+      document.querySelector('.weather .temp').textContent = temp + '°';
+      document.getElementById('weatherDesc').textContent = info[1] + ' · Buenos Aires';
+    } catch(e){
+      document.getElementById('weatherDesc').textContent = 'No se pudo cargar el clima';
+    }
+  }
+  fetchWeather();
+  setInterval(fetchWeather, 15*60*1000); // cada 15 min
+
+  // ---------- RADIO ----------
+  const stations = [
+    { name:'Rock & Pop', url:'https://playerservices.streamtheworld.com/api/livestream-redirect/ROCKANDPOPAAC.aac' },
+    { name:'Metro', url:'https://playerservices.streamtheworld.com/api/livestream-redirect/METROAAC.aac' },
+    { name:'Nacional Rock', url:'http://sa.mp3.icecast.magma.edge-access.net:7200/sc_rad39' },
+    { name:'Nacional Clásica', url:'http://sa.mp3.icecast.magma.edge-access.net:7200/sc_rad37' },
+  ];
+
+  const player = document.getElementById('player');
+  const radioBar = document.getElementById('radioBar');
+  const npText = document.getElementById('npText');
+  const liveDot = document.getElementById('liveDot');
+  const volSlider = document.getElementById('vol');
+  player.volume = 0.6;
+
+  let currentIndex = null;
+
+  stations.forEach((st, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'station-btn';
+    btn.textContent = st.name;
+    btn.onclick = () => toggleStation(i, btn);
+    radioBar.appendChild(btn);
+  });
+
+  function setActiveButton(i){
+    [...radioBar.children].forEach((b, idx) => {
+      b.classList.toggle('active', idx === i);
+    });
+  }
+
+  function toggleStation(i, btn){
+    if (currentIndex === i && !player.paused){
+      player.pause();
+      liveDot.classList.remove('live');
+      npText.textContent = 'Pausado';
+      setActiveButton(-1);
+      currentIndex = null;
+      return;
+    }
+    currentIndex = i;
+    player.src = stations[i].url;
+    player.play().catch(()=>{ npText.textContent = 'No se pudo conectar a ' + stations[i].name; });
+    npText.textContent = 'Reproduciendo: ' + stations[i].name;
+    liveDot.classList.add('live');
+    setActiveButton(i);
+  }
+
+  volSlider.addEventListener('input', (e) => {
+    player.volume = parseFloat(e.target.value);
+  });
+
+  player.addEventListener('error', () => {
+    npText.textContent = 'Error de conexión con la emisora';
+    liveDot.classList.remove('live');
+  });
+
+  // ---------- MODO ROJO (noche) ----------
+  document.getElementById('dimToggle').addEventListener('click', () => {
+    document.body.classList.toggle('dim');
+  });
+
+  // Evitar que la pantalla se apague (si el navegador lo soporta)
+  if ('wakeLock' in navigator) {
+    let wakeLock = null;
+    async function requestWakeLock(){
+      try { wakeLock = await navigator.wakeLock.request('screen'); } catch(e){}
+    }
+    requestWakeLock();
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') requestWakeLock();
+    });
+  }
+</script>
+</body>
+</html>
