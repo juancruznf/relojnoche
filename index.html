@@ -6,88 +6,128 @@
 <title>Reloj Nocturno</title>
 <style>
   * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color: transparent; }
+
   html, body {
     height:100%; width:100%;
-    background:#000;
-    color:#fff;
+    background: radial-gradient(ellipse at 50% 30%, #141414 0%, #050505 70%);
+    color:#e9e2d3;
     font-family: -apple-system, 'Helvetica Neue', Arial, sans-serif;
     overflow:hidden;
     user-select:none;
   }
-  .wrap {
+
+  .frame {
+    position:relative;
     height:100%; width:100%;
     display:flex; flex-direction:column;
+  }
+
+  .topbar {
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    padding: 3vh 3vw 0;
+  }
+  .topbar .group { display:flex; align-items:center; gap:0.9vw; cursor:pointer; }
+  .topbar .group.right { flex-direction:row-reverse; }
+  .icon-badge {
+    width:3.6vw; height:3.6vw;
+    min-width:34px; min-height:34px;
+    border-radius:50%;
+    background:#1c1c1c;
+    border:1px solid #2e2a22;
+    display:flex; align-items:center; justify-content:center;
+    font-size:1.6vw;
+  }
+  .label-stack { display:flex; flex-direction:column; gap:0.2vh; }
+  .label-stack .eyebrow {
+    font-size:1vw; letter-spacing:0.18em;
+    color:#8a7f68; text-transform:uppercase;
+  }
+  .label-stack .value {
+    font-size:1.7vw; color:#e9e2d3; font-weight:500;
+  }
+  .topbar .group.right .label-stack { text-align:right; }
+
+  .switch {
+    width:3vw; height:1.6vw; min-width:28px; min-height:15px;
+    border-radius:999px;
+    background:#1c1a15;
+    border:1px solid #322d22;
+    position:relative;
+    transition: background 0.25s, border-color 0.25s;
+    box-shadow: inset 0 1px 2px rgba(0,0,0,0.4);
+  }
+  .switch .knob {
+    position:absolute; top:50%; left:0.25vw;
+    transform:translateY(-50%);
+    width:1.15vw; height:1.15vw; min-width:11px; min-height:11px;
+    border-radius:50%;
+    background:#7a7361;
+    transition: left 0.25s, background 0.25s;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.5);
+  }
+  .switch.on { background:#3a2e1c; border-color:#5a4526; }
+  .switch.on .knob { left:calc(100% - 1.4vw); background:#e0a84a; }
+
+
+  .center {
+    flex:1;
+    display:flex; flex-direction:column;
     align-items:center; justify-content:center;
-    gap: 2vh;
+    gap:2.2vh;
   }
   .clock {
-    font-size: 16vw;
+    font-size: 15vw;
     font-weight:200;
-    letter-spacing: 0.02em;
+    letter-spacing: 0.01em;
     line-height:1;
     font-variant-numeric: tabular-nums;
+    color:#f2ede0;
   }
+  .date-row {
+    display:flex; align-items:center; gap:1.4vw;
+  }
+  .date-row .line { width:4vw; height:1px; background:#3a3527; }
   .date {
-    font-size: 2.6vw;
-    color:#888;
-    text-transform:capitalize;
-    letter-spacing:0.05em;
+    font-size: 1.5vw;
+    color:#8a7f68;
+    text-transform:uppercase;
+    letter-spacing:0.25em;
+    white-space:nowrap;
   }
   .weather {
     display:flex;
     align-items:center;
-    gap:1.2vw;
-    font-size:2.2vw;
-    color:#bbb;
-    margin-top:0.5vh;
-  }
-  .weather .temp { font-size:3vw; color:#fff; font-weight:300; }
-  .weather .icon { font-size: 3.4vw; }
-
-  .radio-bar {
-    position:fixed;
-    bottom:0; left:0; right:0;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    gap:1.5vw;
-    padding: 2vh 2vw 3vh;
-    flex-wrap:wrap;
-    opacity:0.85;
-  }
-  .station-btn {
-    background:#111;
-    border:1px solid #333;
-    color:#ccc;
-    font-size:1.5vw;
-    padding:1.2vh 1.6vw;
+    gap:1vw;
+    font-size:1.3vw;
+    color:#c7bfa9;
+    background:#161613;
+    border:1px solid #2a2620;
     border-radius:999px;
-    cursor:pointer;
-    transition: all 0.2s;
-    white-space:nowrap;
+    padding:1.2vh 2.2vw;
   }
-  .station-btn.active {
-    background:#fff;
-    color:#000;
-    border-color:#fff;
-  }
-  .station-btn:active { transform: scale(0.95); }
+  .weather .temp { font-size:1.6vw; color:#f2ede0; font-weight:500; }
+  .weather .icon { font-size: 1.6vw; }
+  .weather .sep { color:#4a4536; }
+  #weatherDesc { letter-spacing:0.1em; text-transform:uppercase; font-size:1.1vw; color:#8a7f68; }
 
   .now-playing {
     position:fixed;
-    top:3vh; left:0; right:0;
+    top:8.5vh; left:0; right:0;
     text-align:center;
-    font-size:1.6vw;
-    color:#666;
+    font-size:1.1vw;
+    color:#6b6555;
     display:flex;
     align-items:center;
     justify-content:center;
-    gap:1vw;
+    gap:0.8vw;
+    letter-spacing:0.05em;
   }
   .dot {
-    width:0.7vw; height:0.7vw;
+    width:0.6vw; height:0.6vw;
     border-radius:50%;
-    background:#e74c3c;
+    background:#e0654a;
     display:none;
   }
   .dot.live { display:inline-block; animation: pulse 1.5s infinite; }
@@ -95,47 +135,322 @@
     0%,100% { opacity:1; }
     50% { opacity:0.3; }
   }
+
   .vol-row {
-    display:flex; align-items:center; gap:1vw; margin-top:0.5vh;
+    display:flex; align-items:center; gap:1.4vw;
+    width:60vw; max-width:640px;
+    margin: 0 auto;
+    padding-bottom:1.5vh;
   }
+  .vol-row .spk { font-size:1.3vw; color:#5c5646; }
   input[type=range] {
-    width: 20vw;
-    accent-color:#fff;
+    flex:1;
+    -webkit-appearance:none;
+    height:2px;
+    background:#3a3527;
+    border-radius:2px;
+    outline:none;
   }
-
-  .dim-toggle {
-    position:fixed;
-    top:3vh; right:3vw;
-    font-size:1.6vw;
-    color:#555;
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance:none;
+    width:1.3vw; height:1.3vw; min-width:14px; min-height:14px;
+    border-radius:50%;
+    background:#f2ede0;
     cursor:pointer;
-    padding:1vh 1.2vw;
+    box-shadow:0 0 0 4px rgba(242,237,224,0.08);
   }
 
+  .radio-bar {
+    display:flex;
+    align-items:flex-start;
+    justify-content:center;
+    gap: 2.2vw;
+    padding: 0 4vw 3.5vh;
+    flex-wrap:wrap;
+  }
+  .station-btn {
+    background:none;
+    border:none;
+    color:#8a8474;
+    font-size:1.15vw;
+    line-height:1.3;
+    cursor:pointer;
+    transition: all 0.2s;
+    white-space:nowrap;
+    text-align:center;
+    font-family:inherit;
+    padding:0.4vh 0;
+  }
+  .station-btn.active { color:#e0a84a; }
+  .station-btn:active { transform: scale(0.96); }
+
+  body.dim { background: radial-gradient(ellipse at 50% 30%, #170606 0%, #060202 70%); }
   body.dim .clock { color:#8a2a2a; }
-  body.dim .date, body.dim .weather { color:#5a2020; }
+  body.dim .date, body.dim .weather, body.dim #weatherDesc,
+  body.dim .label-stack .eyebrow, body.dim .label-stack .value,
+  body.dim .station-btn { color:#6b2626; }
   body.dim .weather .temp { color:#8a2a2a; }
+  body.dim .weather { background:#150606; border-color:#2a1010; }
+  body.dim .icon-badge { background:#150606; border-color:#2a1010; color:#6b2626; }
+  body.dim .station-btn.active { color:#c04a3a; }
+  body.dim .date-row .line { background:#2a1010; }
+
+  .modal-bg {
+    position:fixed; inset:0;
+    background:rgba(5,5,5,0.92);
+    backdrop-filter: blur(6px);
+    display:none;
+    align-items:center; justify-content:center;
+    z-index:10;
+  }
+  .modal-bg.show { display:flex; }
+  .modal {
+    background:linear-gradient(180deg,#171512 0%,#100f0c 100%);
+    border:1px solid #2e2a20;
+    border-radius:1.6vw;
+    padding:4.5vh 4.5vw;
+    text-align:center;
+    max-width:92vw;
+    width:38vw;
+    min-width:340px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+  }
+  .modal h2 {
+    font-weight:400; font-size:1.5vw; margin-bottom:3.5vh; color:#c7bfa9;
+    text-transform:uppercase; letter-spacing:0.22em;
+  }
+
+  /* Reloj de hora custom (reemplaza el input nativo feo) */
+  .time-display {
+    display:flex; align-items:baseline; justify-content:center;
+    gap:0.3vw;
+    background:#0a0a08;
+    border:1px solid #2e2a20;
+    border-radius:1.2vw;
+    padding:2.5vh 0;
+    margin-bottom:0.8vh;
+  }
+  .time-display .seg {
+    font-size:5.2vw;
+    font-weight:200;
+    color:#f2ede0;
+    letter-spacing:0.02em;
+    line-height:1;
+    font-variant-numeric: tabular-nums;
+    min-width:2.2ch;
+  }
+  .time-display .colon { font-size:4vw; color:#4a4536; font-weight:200; }
+  .time-stepper {
+    display:flex; flex-direction:column; align-items:center; gap:0.4vh;
+  }
+  .time-stepper button {
+    background:none; border:none; color:#5c5646; cursor:pointer;
+    font-size:1.1vw; padding:0.3vh 0.8vw; font-family:inherit;
+    transition: color 0.15s;
+  }
+  .time-stepper button:active { color:#e0a84a; }
+  .time-groups { display:flex; align-items:center; justify-content:center; }
+  input[type=time].hidden-native { position:absolute; opacity:0; pointer-events:none; width:0; height:0; }
+
+  .modal-row { margin-bottom:3vh; }
+  .modal-label {
+    display:block; color:#7a7060; font-size:0.85vw; margin-bottom:1.6vh;
+    text-transform:uppercase; letter-spacing:0.18em;
+  }
+
+  /* Selector de días de repetición */
+  .day-picker { display:flex; gap:0.8vw; justify-content:center; }
+  .day-btn {
+    width:3.6vw; height:3.6vw; min-width:34px; min-height:34px;
+    border-radius:50%;
+    border:1px solid #322d22;
+    background:#0e0d0a;
+    color:#7a7060;
+    font-size:1.05vw;
+    cursor:pointer;
+    font-family:inherit;
+    display:flex; align-items:center; justify-content:center;
+    transition: all 0.15s;
+  }
+  .day-btn.on {
+    background:#e0a84a;
+    border-color:#e0a84a;
+    color:#1c1408;
+    font-weight:600;
+  }
+  .repeat-hint {
+    margin-top:1.4vh; font-size:0.85vw; color:#5c5646; letter-spacing:0.05em;
+  }
+
+  .select-wrap { position:relative; display:inline-block; }
+  .select-wrap::after {
+    content:'';
+    position:absolute; right:1.1vw; top:50%; transform:translateY(-45%);
+    width:0.6vw; height:0.6vw;
+    border-right:1.5px solid #7a7060; border-bottom:1.5px solid #7a7060;
+    transform:translateY(-65%) rotate(45deg);
+    pointer-events:none;
+  }
+  .modal select {
+    appearance:none; -webkit-appearance:none;
+    font-size:1.15vw;
+    background:#0a0a08; color:#e9e2d3;
+    border:1px solid #322d22; border-radius:0.8vw;
+    padding:1.3vh 2.6vw 1.3vh 1.5vw; font-family:inherit;
+    min-width:14vw;
+  }
+  .modal-btns { display:flex; gap:1.2vw; justify-content:center; margin-top:3.5vh; flex-wrap:wrap; }
+  .modal-btn {
+    font-size:1vw;
+    padding:1.5vh 2.6vw;
+    border-radius:999px;
+    border:1px solid #322d22;
+    cursor:pointer;
+    font-family:inherit;
+    letter-spacing:0.04em;
+    background:transparent;
+    color:#a89e88;
+    transition: transform 0.1s;
+  }
+  .modal-btn:active { transform:scale(0.96); }
+  .modal-btn.primary { background:#e0a84a; color:#1c1408; border-color:#e0a84a; font-weight:600; }
+  .modal-btn.secondary { color:#7a7060; }
+  .modal-btn.danger { color:#c96a52; border-color:#3a251d; }
+
+  body.alarm-ringing { animation: flash 1s infinite; }
+  @keyframes flash {
+    0%,100% { background:#050505; }
+    50% { background:#16221f; }
+  }
+  .ringing-msg {
+    position:fixed; inset:0;
+    display:none;
+    flex-direction:column;
+    align-items:center; justify-content:center;
+    z-index:20;
+    background:rgba(0,0,0,0.55);
+  }
+  .ringing-msg.show { display:flex; }
+  .ringing-msg .big { font-size:7vw; margin-bottom:4vh; }
+  .ringing-msg .stop-btn {
+    font-size:1.4vw;
+    padding:2vh 4vw;
+    background:#e0654a;
+    color:#fff;
+    border:none;
+    border-radius:999px;
+    cursor:pointer;
+    font-family:inherit;
+    letter-spacing:0.05em;
+  }
 </style>
 </head>
 <body>
   <div class="now-playing" id="nowPlaying"><span class="dot" id="liveDot"></span><span id="npText"></span></div>
-  <div class="dim-toggle" id="dimToggle">🌙 modo rojo</div>
 
-  <div class="wrap">
-    <div class="clock" id="clock">--:--</div>
-    <div class="date" id="date">--</div>
-    <div class="weather" id="weather">
-      <span class="icon">⏳</span>
-      <span class="temp">--°</span>
-      <span id="weatherDesc">Cargando clima...</span>
-    </div>
-    <div class="vol-row">
-      <span style="color:#666;font-size:1.4vw;">🔊</span>
-      <input type="range" id="vol" min="0" max="1" step="0.01" value="0.6">
+  <div class="modal-bg" id="alarmModal">
+    <div class="modal">
+      <h2>Configurar alarma</h2>
+
+      <div class="modal-row">
+        <div class="time-display">
+          <div class="time-groups">
+            <div class="time-stepper">
+              <button type="button" id="hourUp">▲</button>
+              <span class="seg" id="hourSeg">07</span>
+              <button type="button" id="hourDown">▼</button>
+            </div>
+            <span class="colon">:</span>
+            <div class="time-stepper">
+              <button type="button" id="minUp">▲</button>
+              <span class="seg" id="minSeg">00</span>
+              <button type="button" id="minDown">▼</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-row">
+        <span class="modal-label">Repetir</span>
+        <div class="day-picker" id="dayPicker">
+          <button type="button" class="day-btn" data-day="1">L</button>
+          <button type="button" class="day-btn" data-day="2">M</button>
+          <button type="button" class="day-btn" data-day="3">M</button>
+          <button type="button" class="day-btn" data-day="4">J</button>
+          <button type="button" class="day-btn" data-day="5">V</button>
+          <button type="button" class="day-btn" data-day="6">S</button>
+          <button type="button" class="day-btn" data-day="0">D</button>
+        </div>
+        <div class="repeat-hint" id="repeatHint">Suena una sola vez</div>
+      </div>
+
+      <div class="modal-row">
+        <span class="modal-label">Sonar con</span>
+        <span class="select-wrap"><select id="alarmSound"></select></span>
+      </div>
+
+      <div class="modal-btns">
+        <button class="modal-btn primary" id="alarmSave">Activar</button>
+        <button class="modal-btn danger" id="alarmCancel">Cancelar alarma</button>
+        <button class="modal-btn secondary" id="alarmClose">Cerrar</button>
+      </div>
     </div>
   </div>
 
-  <div class="radio-bar" id="radioBar"></div>
+  <div class="ringing-msg" id="ringingMsg">
+    <div class="big">⏰</div>
+    <button class="stop-btn" id="stopAlarm">Apagar alarma</button>
+  </div>
+
+  <div class="frame">
+    <div class="topbar">
+      <div class="group" id="alarmToggle">
+        <div class="icon-badge">
+          <svg viewBox="0 0 24 24" width="55%" height="55%" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="13" r="7.5"></circle>
+            <path d="M12 9v4l2.6 1.6"></path>
+            <path d="M5 3 2.5 5.5"></path>
+            <path d="M19 3l2.5 2.5"></path>
+          </svg>
+        </div>
+        <div class="label-stack">
+          <span class="eyebrow">Alarma</span>
+          <span class="value" id="alarmStatus">Sin definir</span>
+        </div>
+      </div>
+
+      <div class="group right" id="dimToggle">
+        <div class="switch" id="dimSwitch"><div class="knob"></div></div>
+        <div class="label-stack">
+          <span class="eyebrow">Modo noche</span>
+          <span class="value" id="dimValue">Inactivo</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="center">
+      <div class="clock" id="clock">--:--</div>
+      <div class="date-row">
+        <span class="line"></span>
+        <span class="date" id="date">--</span>
+        <span class="line"></span>
+      </div>
+      <div class="weather" id="weather">
+        <span class="icon">⏳</span>
+        <span class="temp">--°</span>
+        <span class="sep">·</span>
+        <span id="weatherDesc">Cargando clima...</span>
+      </div>
+    </div>
+
+    <div class="vol-row">
+      <span class="spk">🔉</span>
+      <input type="range" id="vol" min="0" max="1" step="0.01" value="0.6">
+      <span class="spk">🔊</span>
+    </div>
+
+    <div class="radio-bar" id="radioBar"></div>
+  </div>
 
   <audio id="player" preload="none"></audio>
 
@@ -147,6 +462,7 @@
     document.getElementById('clock').textContent = pad(now.getHours())+':'+pad(now.getMinutes());
     const opts = { weekday:'long', day:'numeric', month:'long' };
     document.getElementById('date').textContent = now.toLocaleDateString('es-AR', opts);
+    checkAlarm(now);
   }
   updateClock();
   setInterval(updateClock, 1000);
@@ -183,6 +499,10 @@
 
   // ---------- RADIO ----------
   const stations = [
+    { name:'Mitre', url:'https://playerservices.streamtheworld.com/api/livestream-redirect/AM790_56AAC.aac' },
+    { name:'Rivadavia', url:'https://playerservices.streamtheworld.com/api/livestream-redirect/RIVADAVIAAAC.aac' },
+    { name:'Continental', url:'https://edge02.radiohdvivo.com/continental' },
+    { name:'Nacional', url:'http://sa.mp3.icecast.magma.edge-access.net:7200/sc_rad1' },
     { name:'Rock & Pop', url:'https://playerservices.streamtheworld.com/api/livestream-redirect/ROCKANDPOPAAC.aac' },
     { name:'Metro', url:'https://playerservices.streamtheworld.com/api/livestream-redirect/METROAAC.aac' },
     { name:'Nacional Rock', url:'http://sa.mp3.icecast.magma.edge-access.net:7200/sc_rad39' },
@@ -239,8 +559,168 @@
   });
 
   // ---------- MODO ROJO (noche) ----------
+  const dimSwitch = document.getElementById('dimSwitch');
+  const dimValue = document.getElementById('dimValue');
   document.getElementById('dimToggle').addEventListener('click', () => {
-    document.body.classList.toggle('dim');
+    const isDim = document.body.classList.toggle('dim');
+    dimSwitch.classList.toggle('on', isDim);
+    dimValue.textContent = isDim ? 'Activo' : 'Inactivo';
+  });
+
+  // ---------- ALARMA ----------
+  const alarmToggle = document.getElementById('alarmToggle');
+  const alarmStatus = document.getElementById('alarmStatus');
+  const alarmModal = document.getElementById('alarmModal');
+  const alarmSoundSelect = document.getElementById('alarmSound');
+  const ringingMsg = document.getElementById('ringingMsg');
+  const hourSeg = document.getElementById('hourSeg');
+  const minSeg = document.getElementById('minSeg');
+  const dayPicker = document.getElementById('dayPicker');
+  const repeatHint = document.getElementById('repeatHint');
+  const dayNames = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+
+  // Llenar el desplegable de sonido con las emisoras + un beep
+  alarmSoundSelect.innerHTML = '<option value="beep">Beep (sin radio)</option>';
+  stations.forEach((st, i) => {
+    const opt = document.createElement('option');
+    opt.value = i;
+    opt.textContent = st.name;
+    alarmSoundSelect.appendChild(opt);
+  });
+
+  var alarmConfig = null;   // { time: "07:00", sound: "beep" | index, days: [1,3,5] }
+  var alarmTriggeredMinute = null; // para no re-disparar en el mismo minuto
+  var beepInterval = null;
+  var pickerHour = 7;
+  var pickerMin = 0;
+  var pickerDays = []; // días seleccionados en el picker (antes de guardar)
+
+  function pad2(n){ return n.toString().padStart(2,'0'); }
+
+  function renderPicker(){
+    hourSeg.textContent = pad2(pickerHour);
+    minSeg.textContent = pad2(pickerMin);
+    [...dayPicker.children].forEach(btn => {
+      btn.classList.toggle('on', pickerDays.includes(parseInt(btn.dataset.day)));
+    });
+    repeatHint.textContent = pickerDays.length === 0
+      ? 'Suena una sola vez'
+      : 'Se repite: ' + pickerDays.slice().sort().map(d => dayNames[d].slice(0,3)).join(', ');
+  }
+
+  document.getElementById('hourUp').addEventListener('click', () => { pickerHour = (pickerHour + 1) % 24; renderPicker(); });
+  document.getElementById('hourDown').addEventListener('click', () => { pickerHour = (pickerHour + 23) % 24; renderPicker(); });
+  document.getElementById('minUp').addEventListener('click', () => { pickerMin = (pickerMin + 1) % 60; renderPicker(); });
+  document.getElementById('minDown').addEventListener('click', () => { pickerMin = (pickerMin + 59) % 60; renderPicker(); });
+
+  dayPicker.addEventListener('click', (e) => {
+    const btn = e.target.closest('.day-btn');
+    if (!btn) return;
+    const d = parseInt(btn.dataset.day);
+    const idx = pickerDays.indexOf(d);
+    if (idx === -1) pickerDays.push(d); else pickerDays.splice(idx, 1);
+    renderPicker();
+  });
+
+  function refreshAlarmUI(){
+    if (alarmConfig){
+      const daysTxt = alarmConfig.days && alarmConfig.days.length
+        ? alarmConfig.days.slice().sort().map(d => dayNames[d].slice(0,2)).join(' ')
+        : 'Única vez';
+      alarmStatus.textContent = alarmConfig.time;
+      alarmStatus.title = daysTxt;
+    } else {
+      alarmStatus.textContent = 'Sin definir';
+      alarmStatus.title = '';
+    }
+  }
+
+  alarmToggle.addEventListener('click', () => {
+    if (alarmConfig){
+      const [h, m] = alarmConfig.time.split(':').map(Number);
+      pickerHour = h; pickerMin = m;
+      pickerDays = alarmConfig.days ? alarmConfig.days.slice() : [];
+      alarmSoundSelect.value = alarmConfig.sound;
+    }
+    renderPicker();
+    alarmModal.classList.add('show');
+  });
+  document.getElementById('alarmClose').addEventListener('click', () => alarmModal.classList.remove('show'));
+  document.getElementById('alarmSave').addEventListener('click', () => {
+    const sVal = alarmSoundSelect.value;
+    alarmConfig = {
+      time: pad2(pickerHour) + ':' + pad2(pickerMin),
+      sound: sVal === 'beep' ? 'beep' : parseInt(sVal),
+      days: pickerDays.slice()
+    };
+    try { localStorage.setItem('alarmConfig', JSON.stringify(alarmConfig)); } catch(e){}
+    alarmTriggeredMinute = null;
+    refreshAlarmUI();
+    alarmModal.classList.remove('show');
+  });
+  document.getElementById('alarmCancel').addEventListener('click', () => {
+    alarmConfig = null;
+    pickerDays = [];
+    try { localStorage.removeItem('alarmConfig'); } catch(e){}
+    refreshAlarmUI();
+    alarmModal.classList.remove('show');
+  });
+
+  function checkAlarm(now){
+    if (!alarmConfig) return;
+    const cur = pad(now.getHours()) + ':' + pad(now.getMinutes());
+    const daysOk = !alarmConfig.days || alarmConfig.days.length === 0 || alarmConfig.days.includes(now.getDay());
+    if (cur === alarmConfig.time && daysOk && alarmTriggeredMinute !== cur){
+      alarmTriggeredMinute = cur;
+      triggerAlarm();
+      // Si era "única vez" (sin días de repetición), se autodesactiva tras sonar
+      if (!alarmConfig.days || alarmConfig.days.length === 0){
+        alarmConfig = null;
+        try { localStorage.removeItem('alarmConfig'); } catch(e){}
+        refreshAlarmUI();
+      }
+    }
+  }
+
+  function triggerAlarm(){
+    document.body.classList.add('alarm-ringing');
+    ringingMsg.classList.add('show');
+    if (alarmConfig.sound === 'beep'){
+      startBeep();
+    } else {
+      // Reproducir la emisora elegida
+      player.src = stations[alarmConfig.sound].url;
+      player.volume = Math.max(player.volume, 0.6);
+      player.play().catch(()=> startBeep()); // si falla el stream, beep de respaldo
+      currentIndex = alarmConfig.sound;
+      setActiveButton(alarmConfig.sound);
+      liveDot.classList.add('live');
+      npText.textContent = 'Reproduciendo: ' + stations[alarmConfig.sound].name;
+    }
+  }
+
+  function startBeep(){
+    // Beep con Web Audio API (no necesita archivo de sonido)
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      beepInterval = setInterval(() => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.frequency.value = 880;
+        gain.gain.value = 0.3;
+        osc.connect(gain); gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.3);
+      }, 600);
+    } catch(e){}
+  }
+
+  document.getElementById('stopAlarm').addEventListener('click', () => {
+    document.body.classList.remove('alarm-ringing');
+    ringingMsg.classList.remove('show');
+    if (beepInterval){ clearInterval(beepInterval); beepInterval = null; }
+    // Si estaba sonando radio de alarma, la dejamos sonando (el usuario ya se despertó)
+    // pero si quiere frenarla, toca el botón de la emisora.
   });
 
   // Evitar que la pantalla se apague (si el navegador lo soporta)
@@ -254,6 +734,11 @@
       if (document.visibilityState === 'visible') requestWakeLock();
     });
   }
+  // Cargar alarma guardada (al final, cuando todo ya está definido)
+  try {
+    const saved = localStorage.getItem('alarmConfig');
+    if (saved) { alarmConfig = JSON.parse(saved); refreshAlarmUI(); }
+  } catch(e){}
 </script>
 </body>
 </html>
