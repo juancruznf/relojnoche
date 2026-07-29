@@ -105,10 +105,10 @@
   }
   .date-row .line { width:4vw; height:1px; background:#3a3527; }
   .date {
-    font-size: 1.4vw;
-    color:#8a7f68;
+    font-size: 2.2vw;
+    color:#a89a7d;
     text-transform:uppercase;
-    letter-spacing:0.25em;
+    letter-spacing:0.22em;
     white-space:nowrap;
   }
 
@@ -147,12 +147,17 @@
     margin-top:0.8vh; letter-spacing:0.05em;
   }
 
+  .weather-col {
+    display:flex; flex-direction:column;
+    align-items:center;
+    gap:2.2vh;
+  }
+
   /* ---- Franja de pronóstico por horas ---- */
   .hourly-strip {
     display:flex;
     justify-content:center;
-    gap:2.6vw;
-    padding: 0 4vw 1.8vh;
+    gap:1.8vw;
   }
   .hour-cell {
     display:flex; flex-direction:column;
@@ -490,19 +495,20 @@
         </div>
       </div>
 
-      <div class="weather-panel" id="weather">
-        <div class="wp-city">Buenos Aires</div>
-        <div class="wp-temp" id="wpTemp">--°</div>
-        <div class="wp-desc" id="weatherDesc">Cargando...</div>
-        <div class="wp-minmax">
-          <span><span class="lbl">Máx</span><span id="wpMax">--°</span></span>
-          <span><span class="lbl">Mín</span><span id="wpMin">--°</span></span>
+      <div class="weather-col">
+        <div class="weather-panel" id="weather">
+          <div class="wp-city">Buenos Aires</div>
+          <div class="wp-temp" id="wpTemp">--°</div>
+          <div class="wp-desc" id="weatherDesc">Cargando...</div>
+          <div class="wp-minmax">
+            <span><span class="lbl">Máx</span><span id="wpMax">--°</span></span>
+            <span><span class="lbl">Mín</span><span id="wpMin">--°</span></span>
+          </div>
+          <div class="wp-feels" id="wpFeels"></div>
         </div>
-        <div class="wp-feels" id="wpFeels"></div>
+        <div class="hourly-strip" id="hourlyStrip"></div>
       </div>
     </div>
-
-    <div class="hourly-strip" id="hourlyStrip"></div>
 
     <div class="vol-row">
       <span class="spk">🔉</span>
