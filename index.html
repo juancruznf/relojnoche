@@ -2,7 +2,12 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Reloj Noche">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#050505">
 <title>Reloj Nocturno</title>
 <style>
   * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color: transparent; }
@@ -20,6 +25,10 @@
     position:relative;
     height:100%; width:100%;
     display:flex; flex-direction:column;
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
   }
 
   .topbar {
@@ -73,12 +82,18 @@
 
   .center {
     flex:1;
-    display:flex; flex-direction:column;
+    display:flex; flex-direction:row;
     align-items:center; justify-content:center;
-    gap:2.2vh;
+    gap:6vw;
+    padding: 0 5vw;
+  }
+  .clock-col {
+    display:flex; flex-direction:column;
+    align-items:center;
+    gap:2vh;
   }
   .clock {
-    font-size: 15vw;
+    font-size: 13vw;
     font-weight:200;
     letter-spacing: 0.01em;
     line-height:1;
@@ -90,27 +105,63 @@
   }
   .date-row .line { width:4vw; height:1px; background:#3a3527; }
   .date {
-    font-size: 1.5vw;
+    font-size: 1.4vw;
     color:#8a7f68;
     text-transform:uppercase;
     letter-spacing:0.25em;
     white-space:nowrap;
   }
-  .weather {
-    display:flex;
+
+  /* ---- Panel de clima estilo iOS ---- */
+  .weather-panel {
+    display:flex; flex-direction:column;
     align-items:center;
-    gap:1vw;
-    font-size:1.3vw;
-    color:#c7bfa9;
-    background:#161613;
+    background:#12110e;
     border:1px solid #2a2620;
-    border-radius:999px;
-    padding:1.2vh 2.2vw;
+    border-radius:1.6vw;
+    padding:3vh 3vw 2.4vh;
+    min-width:22vw;
   }
-  .weather .temp { font-size:1.6vw; color:#f2ede0; font-weight:500; }
-  .weather .icon { font-size: 1.6vw; }
-  .weather .sep { color:#4a4536; }
-  #weatherDesc { letter-spacing:0.1em; text-transform:uppercase; font-size:1.1vw; color:#8a7f68; }
+  .wp-city {
+    font-size:1.3vw; color:#c7bfa9;
+    letter-spacing:0.12em; text-transform:uppercase;
+    margin-bottom:0.6vh;
+  }
+  .wp-temp {
+    font-size:5.6vw; font-weight:200; color:#f2ede0;
+    line-height:1.05;
+  }
+  .wp-desc {
+    font-size:1.15vw; color:#8a7f68;
+    letter-spacing:0.1em; text-transform:uppercase;
+    margin-top:0.4vh;
+  }
+  .wp-minmax {
+    display:flex; gap:1.6vw;
+    font-size:1.1vw; color:#c7bfa9;
+    margin-top:1.2vh;
+  }
+  .wp-minmax .lbl { color:#5c5646; margin-right:0.3vw; }
+  .wp-feels {
+    font-size:0.95vw; color:#5c5646;
+    margin-top:0.8vh; letter-spacing:0.05em;
+  }
+
+  /* ---- Franja de pronóstico por horas ---- */
+  .hourly-strip {
+    display:flex;
+    justify-content:center;
+    gap:2.6vw;
+    padding: 0 4vw 1.8vh;
+  }
+  .hour-cell {
+    display:flex; flex-direction:column;
+    align-items:center;
+    gap:0.7vh;
+  }
+  .hour-cell .h-time { font-size:0.95vw; color:#5c5646; letter-spacing:0.08em; }
+  .hour-cell .h-icon { font-size:1.5vw; }
+  .hour-cell .h-temp { font-size:1.1vw; color:#c7bfa9; }
 
   .now-playing {
     position:fixed;
@@ -186,11 +237,12 @@
 
   body.dim { background: radial-gradient(ellipse at 50% 30%, #170606 0%, #060202 70%); }
   body.dim .clock { color:#8a2a2a; }
-  body.dim .date, body.dim .weather, body.dim #weatherDesc,
+  body.dim .date, body.dim .wp-city, body.dim .wp-desc, body.dim .wp-minmax,
+  body.dim .wp-feels, body.dim .hour-cell .h-time, body.dim .hour-cell .h-temp,
   body.dim .label-stack .eyebrow, body.dim .label-stack .value,
   body.dim .station-btn { color:#6b2626; }
-  body.dim .weather .temp { color:#8a2a2a; }
-  body.dim .weather { background:#150606; border-color:#2a1010; }
+  body.dim .wp-temp { color:#8a2a2a; }
+  body.dim .weather-panel { background:#150606; border-color:#2a1010; }
   body.dim .icon-badge { background:#150606; border-color:#2a1010; color:#6b2626; }
   body.dim .station-btn.active { color:#c04a3a; }
   body.dim .date-row .line { background:#2a1010; }
@@ -429,19 +481,28 @@
     </div>
 
     <div class="center">
-      <div class="clock" id="clock">--:--</div>
-      <div class="date-row">
-        <span class="line"></span>
-        <span class="date" id="date">--</span>
-        <span class="line"></span>
+      <div class="clock-col">
+        <div class="clock" id="clock">--:--</div>
+        <div class="date-row">
+          <span class="line"></span>
+          <span class="date" id="date">--</span>
+          <span class="line"></span>
+        </div>
       </div>
-      <div class="weather" id="weather">
-        <span class="icon">⏳</span>
-        <span class="temp">--°</span>
-        <span class="sep">·</span>
-        <span id="weatherDesc">Cargando clima...</span>
+
+      <div class="weather-panel" id="weather">
+        <div class="wp-city">Buenos Aires</div>
+        <div class="wp-temp" id="wpTemp">--°</div>
+        <div class="wp-desc" id="weatherDesc">Cargando...</div>
+        <div class="wp-minmax">
+          <span><span class="lbl">Máx</span><span id="wpMax">--°</span></span>
+          <span><span class="lbl">Mín</span><span id="wpMin">--°</span></span>
+        </div>
+        <div class="wp-feels" id="wpFeels"></div>
       </div>
     </div>
+
+    <div class="hourly-strip" id="hourlyStrip"></div>
 
     <div class="vol-row">
       <span class="spk">🔉</span>
@@ -481,17 +542,49 @@
   async function fetchWeather(){
     try {
       const lat = -34.6037, lon = -58.3816; // Buenos Aires
-      const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code&timezone=America%2FSao_Paulo`;
+      const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}`
+        + `&current=temperature_2m,apparent_temperature,weather_code`
+        + `&daily=temperature_2m_max,temperature_2m_min`
+        + `&hourly=temperature_2m,weather_code`
+        + `&forecast_days=2&timezone=America%2FArgentina%2FBuenos_Aires`;
       const res = await fetch(url);
       const data = await res.json();
+
+      // Actual
       const temp = Math.round(data.current.temperature_2m);
+      const feels = Math.round(data.current.apparent_temperature);
       const code = data.current.weather_code;
       const info = weatherCodes[code] || ['🌡️','--'];
-      document.querySelector('.weather .icon').textContent = info[0];
-      document.querySelector('.weather .temp').textContent = temp + '°';
-      document.getElementById('weatherDesc').textContent = info[1] + ' · Buenos Aires';
+      document.getElementById('wpTemp').textContent = temp + '°';
+      document.getElementById('weatherDesc').textContent = info[1];
+      document.getElementById('wpFeels').textContent = 'Sensación térmica ' + feels + '°';
+
+      // Máx / Mín de hoy
+      document.getElementById('wpMax').textContent = Math.round(data.daily.temperature_2m_max[0]) + '°';
+      document.getElementById('wpMin').textContent = Math.round(data.daily.temperature_2m_min[0]) + '°';
+
+      // Pronóstico por horas: próximas 6, cada 2 horas
+      const strip = document.getElementById('hourlyStrip');
+      strip.innerHTML = '';
+      const nowH = new Date().getHours();
+      // encontrar el índice de la hora actual en el array hourly (día de hoy)
+      let startIdx = data.hourly.time.findIndex(t => new Date(t).getHours() === nowH && new Date(t).getDate() === new Date().getDate());
+      if (startIdx === -1) startIdx = 0;
+      for (let k = 1; k <= 6; k++){
+        const idx = startIdx + k * 2; // cada 2 horas
+        if (idx >= data.hourly.time.length) break;
+        const hDate = new Date(data.hourly.time[idx]);
+        const hTemp = Math.round(data.hourly.temperature_2m[idx]);
+        const hInfo = weatherCodes[data.hourly.weather_code[idx]] || ['🌡️',''];
+        const cell = document.createElement('div');
+        cell.className = 'hour-cell';
+        cell.innerHTML = '<span class="h-time">' + pad(hDate.getHours()) + ' hs</span>'
+          + '<span class="h-icon">' + hInfo[0] + '</span>'
+          + '<span class="h-temp">' + hTemp + '°</span>';
+        strip.appendChild(cell);
+      }
     } catch(e){
-      document.getElementById('weatherDesc').textContent = 'No se pudo cargar el clima';
+      document.getElementById('weatherDesc').textContent = 'Sin datos';
     }
   }
   fetchWeather();
