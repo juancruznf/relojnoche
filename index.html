@@ -18,11 +18,17 @@
   html, body {
     height:100%; width:100%;
     background-color:#050505;
-    background-image: radial-gradient(ellipse at 50% 30%, #141414 0%, #050505 70%);
     color:#e9e2d3;
     font-family: -apple-system, 'Helvetica Neue', Arial, sans-serif;
     overflow:hidden;
     user-select:none;
+  }
+  body {
+    position:fixed;
+    top:0; left:0; right:0; bottom:0;
+    width:100vw;
+    height:100vh;
+    background-image: radial-gradient(ellipse at 50% 30%, #141414 0%, #050505 70%);
   }
 
   .frame {
@@ -244,7 +250,7 @@
   .station-btn.active { color:#e0a84a; }
   .station-btn:active { transform: scale(0.96); }
 
-  body.dim { background: radial-gradient(ellipse at 50% 30%, #170606 0%, #060202 70%); }
+  body.dim { background-color:#060202; background-image: radial-gradient(ellipse at 50% 30%, #170606 0%, #060202 70%); }
   body.dim .clock { color:#8a2a2a; }
   body.dim .date, body.dim .wp-city, body.dim .wp-desc, body.dim .wp-minmax,
   body.dim .wp-feels, body.dim .hour-cell .h-time, body.dim .hour-cell .h-temp,
@@ -837,6 +843,16 @@
       if (document.visibilityState === 'visible') requestWakeLock();
     });
   }
+  // Fix para iPads viejos: al rotar, el viewport a veces queda corrido y
+  // deja ver una franja del fondo del sistema. Reseteamos el scroll.
+  function fixViewport(){
+    window.scrollTo(0, 0);
+    document.body.style.height = window.innerHeight + 'px';
+  }
+  window.addEventListener('orientationchange', () => setTimeout(fixViewport, 300));
+  window.addEventListener('resize', fixViewport);
+  fixViewport();
+
   // Cargar alarma guardada (al final, cuando todo ya está definido)
   try {
     const saved = localStorage.getItem('alarmConfig');
