@@ -756,6 +756,7 @@
   });
   document.getElementById('alarmClose').addEventListener('click', () => alarmModal.classList.remove('show'));
   document.getElementById('alarmSave').addEventListener('click', () => {
+    unlockAudio(); // desbloquear audio de iOS con este gesto del usuario
     const sVal = alarmSoundSelect.value;
     alarmConfig = {
       time: pad2(pickerHour) + ':' + pad2(pickerMin),
@@ -808,18 +809,37 @@
     }
   }
 
+  var audioCtx = null;
+
+  function unlockAudio(){
+    // iOS solo permite audio generado por código si el contexto se crea/reanuda
+    // dentro de un gesto del usuario. Llamamos a esto al tocar "Activar".
+    try {
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      // Reproducir un instante de silencio para completar el desbloqueo
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      gain.gain.value = 0.0001;
+      osc.connect(gain); gain.connect(audioCtx.destination);
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.05);
+    } catch(e){}
+  }
+
   function startBeep(){
     // Beep con Web Audio API (no necesita archivo de sonido)
     try {
-      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      if (audioCtx.state === 'suspended') audioCtx.resume();
       beepInterval = setInterval(() => {
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
         osc.frequency.value = 880;
         gain.gain.value = 0.3;
-        osc.connect(gain); gain.connect(ctx.destination);
+        osc.connect(gain); gain.connect(audioCtx.destination);
         osc.start();
-        osc.stop(ctx.currentTime + 0.3);
+        osc.stop(audioCtx.currentTime + 0.3);
       }, 600);
     } catch(e){}
   }
