@@ -827,20 +827,38 @@
     } catch(e){}
   }
 
+  function playPing(when, freq){
+    // Un "ping" corto y agudo con ataque rápido y caída, estilo alarma clásica
+    const osc = audioCtx.createOscillator();
+    const osc2 = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'sine';
+    osc2.type = 'sine';
+    osc.frequency.value = freq;
+    osc2.frequency.value = freq * 2; // armónico para que suene más "electrónico"
+    gain.gain.setValueAtTime(0, when);
+    gain.gain.linearRampToValueAtTime(0.35, when + 0.005);
+    gain.gain.exponentialRampToValueAtTime(0.001, when + 0.12);
+    osc.connect(gain); osc2.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start(when); osc2.start(when);
+    osc.stop(when + 0.15); osc2.stop(when + 0.15);
+  }
+
   function startBeep(){
-    // Beep con Web Audio API (no necesita archivo de sonido)
+    // Patrón estilo alarma clásica de iPhone: ráfaga de 4 pings rápidos + pausa
     try {
       if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
       if (audioCtx.state === 'suspended') audioCtx.resume();
-      beepInterval = setInterval(() => {
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.frequency.value = 880;
-        gain.gain.value = 0.3;
-        osc.connect(gain); gain.connect(audioCtx.destination);
-        osc.start();
-        osc.stop(audioCtx.currentTime + 0.3);
-      }, 600);
+      const playBurst = () => {
+        const t = audioCtx.currentTime;
+        playPing(t,        1318); // Mi6
+        playPing(t + 0.15, 1318);
+        playPing(t + 0.30, 1318);
+        playPing(t + 0.45, 1318);
+      };
+      playBurst();
+      beepInterval = setInterval(playBurst, 1400); // ráfaga + pausa, en loop
     } catch(e){}
   }
 
