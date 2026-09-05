@@ -289,34 +289,48 @@
 
   /* Reloj de hora custom (reemplaza el input nativo feo) */
   .time-display {
-    display:flex; align-items:baseline; justify-content:center;
-    gap:0.3vw;
+    display:flex; align-items:center; justify-content:center;
+    gap:1.5vw;
     background:#0a0a08;
     border:1px solid #2e2a20;
     border-radius:1.2vw;
-    padding:2.5vh 0;
+    padding:1vh 2vw;
     margin-bottom:0.8vh;
+    position:relative;
   }
-  .time-display .seg {
-    font-size:5.2vw;
+  /* Banda central que marca la selección */
+  .time-display::before {
+    content:'';
+    position:absolute;
+    left:8%; right:8%;
+    top:50%; transform:translateY(-50%);
+    height:64px;
+    border-top:1px solid #3a3527;
+    border-bottom:1px solid #3a3527;
+    pointer-events:none;
+  }
+  .wheel {
+    height:192px; /* 3 items de 64px */
+    width:11vw; min-width:100px;
+    overflow-y:scroll;
+    scroll-snap-type: y mandatory;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width:none;
+  }
+  .wheel::-webkit-scrollbar { display:none; }
+  .wheel .pad { height:64px; }
+  .wheel .item {
+    height:64px;
+    display:flex; align-items:center; justify-content:center;
+    font-size:4.6vw;
     font-weight:200;
-    color:#f2ede0;
-    letter-spacing:0.02em;
-    line-height:1;
+    color:#4a4536;
+    scroll-snap-align:center;
     font-variant-numeric: tabular-nums;
-    min-width:2.2ch;
-  }
-  .time-display .colon { font-size:4vw; color:#4a4536; font-weight:200; }
-  .time-stepper {
-    display:flex; flex-direction:column; align-items:center; gap:0.4vh;
-  }
-  .time-stepper button {
-    background:none; border:none; color:#5c5646; cursor:pointer;
-    font-size:1.1vw; padding:0.3vh 0.8vw; font-family:inherit;
     transition: color 0.15s;
   }
-  .time-stepper button:active { color:#e0a84a; }
-  .time-groups { display:flex; align-items:center; justify-content:center; }
+  .wheel .item.cur { color:#f2ede0; }
+  .time-display .colon { font-size:4vw; color:#4a4536; font-weight:200; }
   input[type=time].hidden-native { position:absolute; opacity:0; pointer-events:none; width:0; height:0; }
 
   .modal-row { margin-bottom:3vh; }
@@ -421,19 +435,9 @@
 
       <div class="modal-row">
         <div class="time-display">
-          <div class="time-groups">
-            <div class="time-stepper">
-              <button type="button" id="hourUp">▲</button>
-              <span class="seg" id="hourSeg">07</span>
-              <button type="button" id="hourDown">▼</button>
-            </div>
-            <span class="colon">:</span>
-            <div class="time-stepper">
-              <button type="button" id="minUp">▲</button>
-              <span class="seg" id="minSeg">00</span>
-              <button type="button" id="minDown">▼</button>
-            </div>
-          </div>
+          <div class="wheel" id="hourWheel"></div>
+          <span class="colon">:</span>
+          <div class="wheel" id="minWheel"></div>
         </div>
       </div>
 
@@ -682,11 +686,12 @@
   const alarmModal = document.getElementById('alarmModal');
   const alarmSoundSelect = document.getElementById('alarmSound');
   const ringingMsg = document.getElementById('ringingMsg');
-  const hourSeg = document.getElementById('hourSeg');
-  const minSeg = document.getElementById('minSeg');
+  const hourWheel = document.getElementById('hourWheel');
+  const minWheel = document.getElementById('minWheel');
   const dayPicker = document.getElementById('dayPicker');
   const repeatHint = document.getElementById('repeatHint');
   const dayNames = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+  const ITEM_H = 64; // alto de cada número en la rueda (coincide con el CSS)
 
   // Llenar el desplegable de sonido con las emisoras + un beep
   alarmSoundSelect.innerHTML = '<option value="beep">Beep (sin radio)</option>';
@@ -706,9 +711,55 @@
 
   function pad2(n){ return n.toString().padStart(2,'0'); }
 
+  // Construir las ruedas scrolleables (00-23 y 00-59)
+  function buildWheel(el, count){
+    el.innerHTML = '';
+    const padTop = document.createElement('div');
+    padTop.className = 'pad';
+    el.appendChild(padTop);
+    for (let i = 0; i < count; i++){
+      const item = document.createElement('div');
+      item.className = 'item';
+      item.textContent = pad2(i);
+      item.dataset.v = i;
+      el.appendChild(item);
+    }
+    const padBottom = document.createElement('div');
+    padBottom.className = 'pad';
+    el.appendChild(padBottom);
+  }
+  buildWheel(hourWheel, 24);
+  buildWheel(minWheel, 60);
+
+  function highlightWheel(el, value){
+    el.querySelectorAll('.item').forEach(it => {
+      it.classList.toggle('cur', parseInt(it.dataset.v) === value);
+    });
+  }
+
+  function setWheel(el, value){
+    el.scrollTop = value * ITEM_H;
+    highlightWheel(el, value);
+  }
+
+  // Al scrollear, detectar el número que quedó en el centro
+  function attachWheel(el, onChange){
+    let t = null;
+    el.addEventListener('scroll', () => {
+      const idx = Math.round(el.scrollTop / ITEM_H);
+      const max = el.querySelectorAll('.item').length - 1;
+      const val = Math.max(0, Math.min(max, idx));
+      highlightWheel(el, val);
+      if (t) clearTimeout(t);
+      t = setTimeout(() => onChange(val), 120);
+    });
+  }
+  attachWheel(hourWheel, v => { pickerHour = v; });
+  attachWheel(minWheel, v => { pickerMin = v; });
+
   function renderPicker(){
-    hourSeg.textContent = pad2(pickerHour);
-    minSeg.textContent = pad2(pickerMin);
+    setWheel(hourWheel, pickerHour);
+    setWheel(minWheel, pickerMin);
     [...dayPicker.children].forEach(btn => {
       btn.classList.toggle('on', pickerDays.includes(parseInt(btn.dataset.day)));
     });
@@ -716,11 +767,6 @@
       ? 'Suena una sola vez'
       : 'Se repite: ' + pickerDays.slice().sort().map(d => dayNames[d].slice(0,3)).join(', ');
   }
-
-  document.getElementById('hourUp').addEventListener('click', () => { pickerHour = (pickerHour + 1) % 24; renderPicker(); });
-  document.getElementById('hourDown').addEventListener('click', () => { pickerHour = (pickerHour + 23) % 24; renderPicker(); });
-  document.getElementById('minUp').addEventListener('click', () => { pickerMin = (pickerMin + 1) % 60; renderPicker(); });
-  document.getElementById('minDown').addEventListener('click', () => { pickerMin = (pickerMin + 59) % 60; renderPicker(); });
 
   dayPicker.addEventListener('click', (e) => {
     const btn = e.target.closest('.day-btn');
@@ -751,8 +797,8 @@
       pickerDays = alarmConfig.days ? alarmConfig.days.slice() : [];
       alarmSoundSelect.value = alarmConfig.sound;
     }
-    renderPicker();
     alarmModal.classList.add('show');
+    renderPicker();
   });
   document.getElementById('alarmClose').addEventListener('click', () => alarmModal.classList.remove('show'));
   document.getElementById('alarmSave').addEventListener('click', () => {
@@ -836,21 +882,28 @@
   }
 
   function playPing(when, freq){
-    // Un "ping" corto y agudo con ataque rápido y caída, estilo alarma clásica
+    // Un "ping" corto y agudo con ataque rápido y caída, estilo alarma clásica.
+    // Cada oscilador tiene su propia ganancia y pasan por un master con envolvente,
+    // así el volumen es alto pero la suma nunca satura (evita distorsión).
     const osc = audioCtx.createOscillator();
     const osc2 = audioCtx.createOscillator();
-    const gain = audioCtx.createGain();
+    const g1 = audioCtx.createGain();
+    const g2 = audioCtx.createGain();
+    const master = audioCtx.createGain();
     osc.type = 'sine';
     osc2.type = 'sine';
     osc.frequency.value = freq;
     osc2.frequency.value = freq * 2; // armónico para que suene más "electrónico"
-    gain.gain.setValueAtTime(0, when);
-    gain.gain.linearRampToValueAtTime(0.85, when + 0.005);
-    gain.gain.exponentialRampToValueAtTime(0.001, when + 0.14);
-    osc.connect(gain); osc2.connect(gain);
-    gain.connect(audioCtx.destination);
+    g1.gain.value = 0.72;
+    g2.gain.value = 0.22;
+    master.gain.setValueAtTime(0, when);
+    master.gain.linearRampToValueAtTime(0.62, when + 0.006);
+    master.gain.exponentialRampToValueAtTime(0.001, when + 0.14);
+    osc.connect(g1); g1.connect(master);
+    osc2.connect(g2); g2.connect(master);
+    master.connect(audioCtx.destination);
     osc.start(when); osc2.start(when);
-    osc.stop(when + 0.15); osc2.stop(when + 0.15);
+    osc.stop(when + 0.16); osc2.stop(when + 0.16);
   }
 
   function startBeep(){
