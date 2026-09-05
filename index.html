@@ -796,6 +796,14 @@
     document.body.classList.add('alarm-ringing');
     ringingMsg.classList.add('show');
     if (alarmConfig.sound === 'beep'){
+      // Silenciar la radio si estaba sonando, para que la alarma se escuche limpia
+      if (!player.paused){
+        player.pause();
+        liveDot.classList.remove('live');
+        npText.textContent = '';
+        setActiveButton(-1);
+        currentIndex = null;
+      }
       startBeep();
     } else {
       // Reproducir la emisora elegida
@@ -837,8 +845,8 @@
     osc.frequency.value = freq;
     osc2.frequency.value = freq * 2; // armónico para que suene más "electrónico"
     gain.gain.setValueAtTime(0, when);
-    gain.gain.linearRampToValueAtTime(0.35, when + 0.005);
-    gain.gain.exponentialRampToValueAtTime(0.001, when + 0.12);
+    gain.gain.linearRampToValueAtTime(0.85, when + 0.005);
+    gain.gain.exponentialRampToValueAtTime(0.001, when + 0.14);
     osc.connect(gain); osc2.connect(gain);
     gain.connect(audioCtx.destination);
     osc.start(when); osc2.start(when);
