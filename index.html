@@ -559,13 +559,22 @@
     95:['⛈️','Tormenta'], 96:['⛈️','Tormenta con granizo'], 99:['⛈️','Tormenta fuerte']
   };
 
+  // De noche, los códigos "con sol" cambian a su versión lunar
+  function nightIcon(code, isDay, dayIconDefault){
+    if (isDay) return dayIconDefault;
+    if (code === 0) return '🌙';        // despejado → luna
+    if (code === 1) return '🌙';        // mayormente despejado → luna
+    if (code === 2) return '☁️';        // parcialmente nublado → nube (sin sol)
+    return dayIconDefault;              // el resto no tiene sol en su ícono
+  }
+
   async function fetchWeather(){
     try {
       const lat = -34.6037, lon = -58.3816; // Buenos Aires
       const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}`
         + `&current=temperature_2m,apparent_temperature,weather_code`
         + `&daily=temperature_2m_max,temperature_2m_min`
-        + `&hourly=temperature_2m,weather_code`
+        + `&hourly=temperature_2m,weather_code,is_day`
         + `&forecast_days=2&timezone=America%2FArgentina%2FBuenos_Aires`;
       const res = await fetch(url);
       const data = await res.json();
@@ -595,11 +604,14 @@
         if (idx >= data.hourly.time.length) break;
         const hDate = new Date(data.hourly.time[idx]);
         const hTemp = Math.round(data.hourly.temperature_2m[idx]);
-        const hInfo = weatherCodes[data.hourly.weather_code[idx]] || ['🌡️',''];
+        const hCode = data.hourly.weather_code[idx];
+        const hIsDay = data.hourly.is_day ? data.hourly.is_day[idx] : 1;
+        const hInfo = weatherCodes[hCode] || ['🌡️',''];
+        const hIcon = nightIcon(hCode, hIsDay, hInfo[0]);
         const cell = document.createElement('div');
         cell.className = 'hour-cell';
         cell.innerHTML = '<span class="h-time">' + pad(hDate.getHours()) + ' hs</span>'
-          + '<span class="h-icon">' + hInfo[0] + '</span>'
+          + '<span class="h-icon">' + hIcon + '</span>'
           + '<span class="h-temp">' + hTemp + '°</span>';
         strip.appendChild(cell);
       }
