@@ -723,8 +723,35 @@
     setActiveButton(i);
   }
 
+  // iOS ignora player.volume (es de solo lectura en Safari móvil), así que
+  // enrutamos el audio por un GainNode de Web Audio, que sí permite atenuarlo.
+  var radioGain = null;
+  var radioSourceNode = null;
+
+  function setupRadioGain(){
+    if (radioSourceNode) return true; // ya está enrutado
+    try {
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      radioSourceNode = audioCtx.createMediaElementSource(player);
+      radioGain = audioCtx.createGain();
+      radioGain.gain.value = parseFloat(volSlider.value);
+      radioSourceNode.connect(radioGain);
+      radioGain.connect(audioCtx.destination);
+      return true;
+    } catch(e){
+      radioSourceNode = null;
+      radioGain = null;
+      return false;
+    }
+  }
+
   volSlider.addEventListener('input', (e) => {
-    player.volume = parseFloat(e.target.value);
+    const v = parseFloat(e.target.value);
+    player.volume = v;          // sirve en escritorio
+    if (setupRadioGain() && radioGain){
+      radioGain.gain.value = v; // sirve en iOS
+    }
   });
 
   // Botón de silencio: apaga/prende el audio de la radio sin frenar el stream
@@ -923,6 +950,10 @@
       // Reproducir la emisora elegida
       player.src = stations[alarmConfig.sound].url;
       player.volume = Math.max(player.volume, 0.6);
+      player.muted = false;
+      if (radioGain && radioGain.gain.value < 0.6) radioGain.gain.value = 0.6;
+      if (muteBtn){ muteBtn.textContent = '🔊'; muteBtn.classList.remove('muted'); }
+      if (parseFloat(volSlider.value) < 0.6) volSlider.value = 0.6;
       player.play().catch(()=> startBeep()); // si falla el stream, beep de respaldo
       currentIndex = alarmConfig.sound;
       setActiveButton(alarmConfig.sound);
