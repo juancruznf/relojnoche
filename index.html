@@ -228,17 +228,31 @@
 
   .radio-bar {
     display:flex;
-    align-items:flex-start;
+    align-items:center;
     justify-content:center;
-    gap: 2.2vw;
-    padding: 0 4vw 3.5vh;
+    gap: 3vw;
+    padding: 0 2vw 3.5vh;
     flex-wrap:wrap;
+  }
+  .band-group {
+    display:flex;
+    align-items:center;
+    gap: 1.6vw;
+  }
+  .band-label {
+    font-size:1.4vw;
+    color:#e0a84a;
+    letter-spacing:0.2em;
+    border:1px solid #5a4526;
+    border-radius:0.6vw;
+    padding:0.7vh 1.1vw;
+    background:#1c1408;
   }
   .station-btn {
     background:none;
     border:none;
     color:#8a8474;
-    font-size:1.15vw;
+    font-size:2.3vw;
     line-height:1.3;
     cursor:pointer;
     transition: all 0.2s;
@@ -250,6 +264,24 @@
   .station-btn.active { color:#e0a84a; }
   .station-btn:active { transform: scale(0.96); }
 
+  .mute-btn {
+    background:#1c1c1c;
+    border:1px solid #2e2a22;
+    border-radius:50%;
+    width:4.6vw; height:4.6vw;
+    min-width:52px; min-height:52px;
+    font-size:2vw;
+    cursor:pointer;
+    margin-left:1.2vw;
+    display:flex; align-items:center; justify-content:center;
+    transition: all 0.2s;
+  }
+  .mute-btn.muted {
+    background:#2a1414;
+    border-color:#5a2626;
+  }
+  .mute-btn:active { transform: scale(0.92); }
+
   body.dim { background-color:#060202; background-image: radial-gradient(ellipse at 50% 30%, #170606 0%, #060202 70%); }
   body.dim .clock { color:#8a2a2a; }
   body.dim .date, body.dim .wp-city, body.dim .wp-desc, body.dim .wp-minmax,
@@ -260,6 +292,8 @@
   body.dim .weather-panel { background:#150606; border-color:#2a1010; }
   body.dim .icon-badge { background:#150606; border-color:#2a1010; color:#6b2626; }
   body.dim .station-btn.active { color:#c04a3a; }
+  body.dim .band-label { color:#c04a3a; border-color:#4a1a1a; background:#150606; }
+  body.dim .mute-btn { background:#150606; border-color:#2a1010; }
   body.dim .date-row .line { background:#2a1010; }
 
   .modal-bg {
@@ -528,6 +562,7 @@
       <span class="spk">🔉</span>
       <input type="range" id="vol" min="0" max="1" step="0.01" value="0.6">
       <span class="spk">🔊</span>
+      <button type="button" id="muteBtn" class="mute-btn">🔊</button>
     </div>
 
     <div class="radio-bar" id="radioBar"></div>
@@ -624,14 +659,14 @@
 
   // ---------- RADIO ----------
   const stations = [
-    { name:'Mitre', url:'https://playerservices.streamtheworld.com/api/livestream-redirect/AM790_56AAC.aac' },
-    { name:'Rivadavia', url:'https://playerservices.streamtheworld.com/api/livestream-redirect/RIVADAVIAAAC.aac' },
-    { name:'Continental', url:'https://edge02.radiohdvivo.com/continental' },
-    { name:'Nacional', url:'http://sa.mp3.icecast.magma.edge-access.net:7200/sc_rad1' },
-    { name:'Rock & Pop', url:'https://playerservices.streamtheworld.com/api/livestream-redirect/ROCKANDPOPAAC.aac' },
-    { name:'Metro', url:'https://playerservices.streamtheworld.com/api/livestream-redirect/METROAAC.aac' },
-    { name:'Nacional Rock', url:'http://sa.mp3.icecast.magma.edge-access.net:7200/sc_rad39' },
-    { name:'Nacional Clásica', url:'http://sa.mp3.icecast.magma.edge-access.net:7200/sc_rad37' },
+    { name:'Mitre', band:'AM', url:'https://playerservices.streamtheworld.com/api/livestream-redirect/AM790_56AAC.aac' },
+    { name:'Rivadavia', band:'AM', url:'https://playerservices.streamtheworld.com/api/livestream-redirect/RIVADAVIAAAC.aac' },
+    { name:'Continental', band:'AM', url:'https://edge02.radiohdvivo.com/continental' },
+    { name:'Nacional', band:'AM', url:'http://sa.mp3.icecast.magma.edge-access.net:7200/sc_rad1' },
+    { name:'Rock & Pop', band:'FM', url:'https://playerservices.streamtheworld.com/api/livestream-redirect/ROCKANDPOPAAC.aac' },
+    { name:'Metro', band:'FM', url:'https://playerservices.streamtheworld.com/api/livestream-redirect/METROAAC.aac' },
+    { name:'Nacional Rock', band:'FM', url:'http://sa.mp3.icecast.magma.edge-access.net:7200/sc_rad39' },
+    { name:'Nacional Clásica', band:'FM', url:'http://sa.mp3.icecast.magma.edge-access.net:7200/sc_rad37' },
   ];
 
   const player = document.getElementById('player');
@@ -639,21 +674,35 @@
   const npText = document.getElementById('npText');
   const liveDot = document.getElementById('liveDot');
   const volSlider = document.getElementById('vol');
+  const muteBtn = document.getElementById('muteBtn');
   player.volume = 0.6;
 
   let currentIndex = null;
+  const stationBtns = []; // botones indexados por estación
 
-  stations.forEach((st, i) => {
-    const btn = document.createElement('button');
-    btn.className = 'station-btn';
-    btn.textContent = st.name;
-    btn.onclick = () => toggleStation(i, btn);
-    radioBar.appendChild(btn);
+  // Armar los botones agrupados por banda (AM / FM)
+  ['AM','FM'].forEach(band => {
+    const group = document.createElement('div');
+    group.className = 'band-group';
+    const label = document.createElement('span');
+    label.className = 'band-label';
+    label.textContent = band;
+    group.appendChild(label);
+    stations.forEach((st, i) => {
+      if (st.band !== band) return;
+      const btn = document.createElement('button');
+      btn.className = 'station-btn';
+      btn.textContent = st.name;
+      btn.onclick = () => toggleStation(i, btn);
+      stationBtns[i] = btn;
+      group.appendChild(btn);
+    });
+    radioBar.appendChild(group);
   });
 
   function setActiveButton(i){
-    [...radioBar.children].forEach((b, idx) => {
-      b.classList.toggle('active', idx === i);
+    stationBtns.forEach((b, idx) => {
+      if (b) b.classList.toggle('active', idx === i);
     });
   }
 
@@ -676,6 +725,13 @@
 
   volSlider.addEventListener('input', (e) => {
     player.volume = parseFloat(e.target.value);
+  });
+
+  // Botón de silencio: apaga/prende el audio de la radio sin frenar el stream
+  muteBtn.addEventListener('click', () => {
+    player.muted = !player.muted;
+    muteBtn.textContent = player.muted ? '🔇' : '🔊';
+    muteBtn.classList.toggle('muted', player.muted);
   });
 
   player.addEventListener('error', () => {
