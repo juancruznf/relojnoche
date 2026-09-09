@@ -264,23 +264,26 @@
   .station-btn.active { color:#e0a84a; }
   .station-btn:active { transform: scale(0.96); }
 
-  .mute-btn {
-    background:#1c1c1c;
-    border:1px solid #2e2a22;
-    border-radius:50%;
-    width:4.6vw; height:4.6vw;
-    min-width:52px; min-height:52px;
-    font-size:2vw;
+  .radio-off-btn {
+    background:#2a1414;
+    border:1px solid #5a2626;
+    color:#e08a7a;
+    border-radius:999px;
+    padding:1.1vh 2.2vw;
+    font-size:1.5vw;
+    font-family:inherit;
+    letter-spacing:0.08em;
     cursor:pointer;
     margin-left:1.2vw;
-    display:flex; align-items:center; justify-content:center;
+    white-space:nowrap;
     transition: all 0.2s;
   }
-  .mute-btn.muted {
-    background:#2a1414;
-    border-color:#5a2626;
+  .radio-off-btn.off {
+    background:#141310;
+    border-color:#2e2a22;
+    color:#5c5646;
   }
-  .mute-btn:active { transform: scale(0.92); }
+  .radio-off-btn:active { transform: scale(0.94); }
 
   body.dim { background-color:#060202; background-image: radial-gradient(ellipse at 50% 30%, #170606 0%, #060202 70%); }
   body.dim .clock { color:#8a2a2a; }
@@ -293,7 +296,8 @@
   body.dim .icon-badge { background:#150606; border-color:#2a1010; color:#6b2626; }
   body.dim .station-btn.active { color:#c04a3a; }
   body.dim .band-label { color:#c04a3a; border-color:#4a1a1a; background:#150606; }
-  body.dim .mute-btn { background:#150606; border-color:#2a1010; }
+  body.dim .radio-off-btn { background:#2a0e0e; border-color:#5a2020; color:#c04a3a; }
+  body.dim .radio-off-btn.off { background:#150606; border-color:#2a1010; color:#6b2626; }
   body.dim .date-row .line { background:#2a1010; }
 
   .modal-bg {
@@ -562,7 +566,7 @@
       <span class="spk">🔉</span>
       <input type="range" id="vol" min="0" max="1" step="0.01" value="0.6">
       <span class="spk">🔊</span>
-      <button type="button" id="muteBtn" class="mute-btn">🔊</button>
+      <button type="button" id="radioOffBtn" class="radio-off-btn off">Radio</button>
     </div>
 
     <div class="radio-bar" id="radioBar"></div>
@@ -664,6 +668,7 @@
     { name:'Continental', band:'AM', url:'https://edge02.radiohdvivo.com/continental' },
     { name:'Nacional', band:'AM', url:'http://sa.mp3.icecast.magma.edge-access.net:7200/sc_rad1' },
     { name:'Rock & Pop', band:'FM', url:'https://playerservices.streamtheworld.com/api/livestream-redirect/ROCKANDPOPAAC.aac' },
+    { name:'Pop 101.5', band:'FM', url:'https://playerservices.streamtheworld.com/api/livestream-redirect/POP1015AAC.aac' },
     { name:'Metro', band:'FM', url:'https://playerservices.streamtheworld.com/api/livestream-redirect/METROAAC.aac' },
     { name:'Nacional Rock', band:'FM', url:'http://sa.mp3.icecast.magma.edge-access.net:7200/sc_rad39' },
     { name:'Nacional Clásica', band:'FM', url:'http://sa.mp3.icecast.magma.edge-access.net:7200/sc_rad37' },
@@ -674,7 +679,7 @@
   const npText = document.getElementById('npText');
   const liveDot = document.getElementById('liveDot');
   const volSlider = document.getElementById('vol');
-  const muteBtn = document.getElementById('muteBtn');
+  const radioOffBtn = document.getElementById('radioOffBtn');
   player.volume = 0.6;
 
   let currentIndex = null;
@@ -708,58 +713,46 @@
 
   function toggleStation(i, btn){
     if (currentIndex === i && !player.paused){
-      player.pause();
-      liveDot.classList.remove('live');
-      npText.textContent = 'Pausado';
-      setActiveButton(-1);
-      currentIndex = null;
+      stopRadio();
       return;
     }
     currentIndex = i;
     player.src = stations[i].url;
+    player.muted = false;
     player.play().catch(()=>{ npText.textContent = 'No se pudo conectar a ' + stations[i].name; });
     npText.textContent = 'Reproduciendo: ' + stations[i].name;
     liveDot.classList.add('live');
     setActiveButton(i);
-  }
-
-  // iOS ignora player.volume (es de solo lectura en Safari móvil), así que
-  // enrutamos el audio por un GainNode de Web Audio, que sí permite atenuarlo.
-  var radioGain = null;
-  var radioSourceNode = null;
-
-  function setupRadioGain(){
-    if (radioSourceNode) return true; // ya está enrutado
-    try {
-      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      if (audioCtx.state === 'suspended') audioCtx.resume();
-      radioSourceNode = audioCtx.createMediaElementSource(player);
-      radioGain = audioCtx.createGain();
-      radioGain.gain.value = parseFloat(volSlider.value);
-      radioSourceNode.connect(radioGain);
-      radioGain.connect(audioCtx.destination);
-      return true;
-    } catch(e){
-      radioSourceNode = null;
-      radioGain = null;
-      return false;
-    }
+    updateRadioOffBtn();
   }
 
   volSlider.addEventListener('input', (e) => {
-    const v = parseFloat(e.target.value);
-    player.volume = v;          // sirve en escritorio
-    if (setupRadioGain() && radioGain){
-      radioGain.gain.value = v; // sirve en iOS
-    }
+    player.volume = parseFloat(e.target.value);
   });
 
-  // Botón de silencio: apaga/prende el audio de la radio sin frenar el stream
-  muteBtn.addEventListener('click', () => {
-    player.muted = !player.muted;
-    muteBtn.textContent = player.muted ? '🔇' : '🔊';
-    muteBtn.classList.toggle('muted', player.muted);
+  // Botón Radio OFF: corta el stream por completo.
+  // No usamos player.muted porque eso también silenciaba la alarma con radio.
+  function stopRadio(){
+    player.pause();
+    player.removeAttribute('src');
+    player.load();
+    liveDot.classList.remove('live');
+    npText.textContent = '';
+    setActiveButton(-1);
+    currentIndex = null;
+    updateRadioOffBtn();
+  }
+
+  function updateRadioOffBtn(){
+    const sonando = currentIndex !== null;
+    radioOffBtn.textContent = sonando ? 'Radio OFF' : 'Radio';
+    radioOffBtn.classList.toggle('off', !sonando);
+  }
+
+  radioOffBtn.addEventListener('click', () => {
+    if (currentIndex !== null) stopRadio();
   });
+  updateRadioOffBtn(); // estado inicial: radio apagada
 
   player.addEventListener('error', () => {
     npText.textContent = 'Error de conexión con la emisora';
@@ -950,15 +943,13 @@
       // Reproducir la emisora elegida
       player.src = stations[alarmConfig.sound].url;
       player.volume = Math.max(player.volume, 0.6);
-      player.muted = false;
-      if (radioGain && radioGain.gain.value < 0.6) radioGain.gain.value = 0.6;
-      if (muteBtn){ muteBtn.textContent = '🔊'; muteBtn.classList.remove('muted'); }
-      if (parseFloat(volSlider.value) < 0.6) volSlider.value = 0.6;
+      player.muted = false; // por las dudas, garantizamos audio en la alarma
       player.play().catch(()=> startBeep()); // si falla el stream, beep de respaldo
       currentIndex = alarmConfig.sound;
       setActiveButton(alarmConfig.sound);
       liveDot.classList.add('live');
       npText.textContent = 'Reproduciendo: ' + stations[alarmConfig.sound].name;
+      updateRadioOffBtn();
     }
   }
 
